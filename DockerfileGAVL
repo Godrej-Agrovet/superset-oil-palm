@@ -1,0 +1,26 @@
+FROM apache/superset:2.1.1
+
+USER root
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        postgresql-client libhdf5-dev libxml2-dev libxmlsec1-dev binutils libproj-dev gdal-bin python-gdal python3-gdal unixodbc unixodbc-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+#RUN add-apt-repository ppa:ubuntugis/ppa && apt-get update && apt-get install -y gdal-bin python-gdal python3-gdal
+
+RUN curl -k https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
+RUN curl -k https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list
+RUN apt-get update
+RUN ACCEPT_EULA=Y apt-get install -y --allow-unauthenticated msodbcsql17
+RUN ACCEPT_EULA=Y apt-get install -y --allow-unauthenticated mssql-tools
+RUN echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile
+RUN echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
+RUN echo MinProtocol = TLSv1.0 >> /etc/ssl/openssl.cnf
+RUN echo CipherString = DEFAULT@SECLEVEL=1 >> /etc/ssl/openssl.cnf
+
+USER superset
+
+RUN echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile
+RUN echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
+
