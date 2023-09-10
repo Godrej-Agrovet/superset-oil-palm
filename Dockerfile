@@ -15,36 +15,34 @@
 # limitations under the License.
 #
 
-######################################################################
-# Node stage to deal with static asset construction
-######################################################################
-ARG PY_VER=3.9-slim-bookworm
-
-# if BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
-ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
+# Stage 1: Node stage for handling static asset construction
+ARG BUILDPLATFORM=amd64
 FROM --platform=${BUILDPLATFORM} node:16-slim AS superset-node
 
+# Set environment variables
 ARG NPM_BUILD_CMD="build"
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-# NPM ci first, as to NOT invalidate previous steps except for when package.json changes
+
+# Create a working directory
 WORKDIR /app/superset-frontend
 
-RUN --mount=type=bind,target=/frontend-mem-nag.sh,src=./docker/frontend-mem-nag.sh \
-    /frontend-mem-nag.sh
+# Copy the frontend memory nag script
+COPY --mount=type=bind,target=/frontend-mem-nag.sh,src=./docker/frontend-mem-nag.sh /frontend-mem-nag.sh
+RUN /frontend-mem-nag.sh
 
+# Copy package.json and install dependencies
 COPY superset-frontend/package*.json ./
 RUN npm ci
 
+# Copy the frontend source code and build assets
 COPY ./superset-frontend ./
-# This seems to be the most expensive step
 RUN npm run ${BUILD_CMD}
 
-######################################################################
-# Final lean image...
-######################################################################
-FROM python:${PY_VER} AS lean
+# Stage 2: Final lean image
+FROM python:3.9-slim-bookworm AS lean
 
+# Set environment variables
 WORKDIR /app
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
@@ -54,43 +52,70 @@ ENV LANG=C.UTF-8 \
     SUPERSET_HOME="/app/superset_home" \
     SUPERSET_PORT=8088
 
+# Create necessary directories and user
 RUN mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
-    && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
-    && apt-get update -q \
-    && apt-get install -yq --no-install-recommends \
-        build-essential \
-        curl \
-        default-libmysqlclient-dev \
-        libsasl2-dev \
-        libsasl2-modules-gssapi-mit \
-        libpq-dev \
-        libecpg-dev \
-        libldap2-dev \
-    && apt-get autoremove -yqq --purge && rm -rf /var/lib/apt/lists/* /var/[log,tmp]/* /tmp/* && apt-get clean \
-    && touch superset/static/version_info.json \
-    && chown -R superset:superset ./*
+    && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset
 
+# Install system dependencies
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    build-essential \
+    curl \
+    gnupg2 \
+    default-libmysqlclient-dev \
+    libsasl2-dev \
+    libsasl2-modules-gssapi-mit \
+    libpq-dev \
+    libecpg-dev \
+    libldap2-dev \
+    unixodbc-dev \
+    unixodbc \
+    libpq-dev \
+    postgresql-client \
+    libhdf5-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    binutils \
+    libproj-dev \
+    gdal-bin \
+    python3-gdal \
+    gettext \
+    libgssapi-krb5-2
+
+# Install MS SQL tools
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
+RUN curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list
+RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql17 mssql-tools
+RUN echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc \
+    && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile \
+    && /bin/bash -c "source ~/.bashrc" \
+    && echo MinProtocol = TLSv1.0 >> /etc/ssl/openssl.cnf \
+    && echo CipherString = DEFAULT@SECLEVEL=0 >> /etc/ssl/openssl.cnf
+
+# Copy requirements and install them
 COPY --chown=superset:superset ./requirements/*.txt requirements/
 COPY --chown=superset:superset setup.py MANIFEST.in README.md ./
-# setup.py uses the version information in package.json
 COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
 RUN pip install --no-cache-dir -r requirements/local.txt
 
+# Copy openssl.cnf
+COPY docker/openssl.cnf /etc/ssl/openssl.cnf
+
+# Copy static assets and install Superset
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
-## Lastly, let's install superset itself
 COPY --chown=superset:superset superset superset
 RUN pip install --no-cache-dir -e . \
     && flask fab babel-compile --target superset/translations \
     && chown -R superset:superset superset/translations
 
+# Copy run-server.sh and set user
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
 USER superset
 
+# Healthcheck, expose port, and define the default command
 HEALTHCHECK CMD curl -f "http://localhost:$SUPERSET_PORT/health"
-
 EXPOSE ${SUPERSET_PORT}
-
 CMD ["/usr/bin/run-server.sh"]
+
 
 ######################################################################
 # Dev image...
@@ -121,6 +146,8 @@ RUN apt-get update -q \
 RUN pip install --no-cache-dir -r requirements/docker.txt
 
 USER superset
+
+
 ######################################################################
 # CI image...
 ######################################################################
@@ -129,3 +156,4 @@ FROM lean AS ci
 COPY --chown=superset:superset --chmod=755 ./docker/*.sh /app/docker/
 
 CMD ["/app/docker/docker-ci.sh"]
+
