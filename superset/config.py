@@ -1122,14 +1122,14 @@ CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 FLASK_APP_MUTATOR = None
 
 # smtp server configuration
-EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
-SMTP_HOST = "localhost"
-SMTP_STARTTLS = True
-SMTP_SSL = False
-SMTP_USER = "superset"
-SMTP_PORT = 25
-SMTP_PASSWORD = "superset"
-SMTP_MAIL_FROM = "superset@superset.com"
+EMAIL_NOTIFICATIONS = True  # all the emails are sent using dryrun
+SMTP_HOST = os.environ.get('SMTP_HOST') or "localhost"
+SMTP_STARTTLS = os.environ.get('SMTP_STARTTLS') or True
+SMTP_SSL = os.environ.get('SMTP_SSL') or False
+SMTP_USER = os.environ.get('SMTP_USER') or "superset"
+SMTP_PORT = os.environ.get('SMTP_PORT') or 25
+SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD') or "superset"
+SMTP_MAIL_FROM = "insights.opp@godrejagrovet.com"
 # If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
 # default system root CA certificates.
 SMTP_SSL_SERVER_AUTH = False
@@ -1311,16 +1311,16 @@ ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 * * * *"  # every hour
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 # Max tries to run queries to prevent false errors caused by transient errors
 # being returned to users. Set to a value >1 to enable retries.
-ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
+ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 2
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
 
 # A custom prefix to use on all Alerts & Reports emails
-EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
+EMAIL_REPORTS_SUBJECT_PREFIX = "[OPP Insights Report] "
 
 # The text for call-to-action link in Alerts & Reports emails
-EMAIL_REPORTS_CTA = "Explore in Superset"
+EMAIL_REPORTS_CTA = "Explore in Insights 2.0"
 
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
