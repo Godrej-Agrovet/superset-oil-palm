@@ -27,9 +27,9 @@ ENV BUILD_CMD=${NPM_BUILD_CMD} \
 # Create a working directory
 WORKDIR /app/superset-frontend
 
-# Copy the frontend memory nag script
-COPY --mount=type=bind,target=/frontend-mem-nag.sh,src=./docker/frontend-mem-nag.sh /frontend-mem-nag.sh
-RUN /frontend-mem-nag.sh
+# Run the frontend memory nag script
+RUN --mount=type=bind,target=/frontend-mem-nag.sh,src=./docker/frontend-mem-nag.sh \
+    /frontend-mem-nag.sh
 
 # Copy package.json and install dependencies
 COPY superset-frontend/package*.json ./
