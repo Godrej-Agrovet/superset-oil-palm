@@ -348,7 +348,7 @@ PUBLIC_ROLE_LIKE: str | None = None
 BABEL_DEFAULT_LOCALE = "en"
 # Your application default translation path
 BABEL_DEFAULT_FOLDER = "superset/translations"
-# The allowed translation for you app
+# The allowed translation for your app
 LANGUAGES = {
     "en": {"flag": "us", "name": "English"},
     "es": {"flag": "es", "name": "Spanish"},
@@ -472,7 +472,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable caching per impersonation key (e.g username) in a datasource where user
     # impersonation is enabled
     "CACHE_IMPERSONATION": False,
-    # Enable caching per user key for Superset cache (not datatabase cache impersonation)
+    # Enable caching per user key for Superset cache (not database cache impersonation)
     "CACHE_QUERY_BY_USER": False,
     # Enable sharing charts with embedding
     "EMBEDDABLE_CHARTS": True,
@@ -743,7 +743,7 @@ CORS_OPTIONS: dict[Any, Any] = {}
 HTML_SANITIZATION = True
 
 # Use this configuration to extend the HTML sanitization schema.
-# By default we use the Gihtub schema defined in
+# By default we use the GitHub schema defined in
 # https://github.com/syntax-tree/hast-util-sanitize/blob/main/lib/schema.js
 # For example, the following configuration would allow the rendering of the
 # style attribute for div elements and the ftp protocol in hrefs:
@@ -811,7 +811,7 @@ TIME_GRAIN_ADDON_EXPRESSIONS: dict[str, dict[str, str]] = {}
 
 # Map of custom time grains and artificial join column producers used
 # when generating the join key between results and time shifts.
-# See supeset/common/query_context_processor.get_aggregated_join_column
+# See superset/common/query_context_processor.get_aggregated_join_column
 #
 # Example of a join column producer that aggregates by fiscal year
 # def join_producer(row: Series, column_index: int) -> str:
@@ -914,6 +914,10 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [86400, "24 hours"],
 ]
 
+# This is used as a workaround for the alerts & reports scheduler task to get the time
+# celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details
+CELERY_BEAT_SCHEDULER_EXPIRES = timedelta(weeks=1)
+
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
 # https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html
@@ -942,6 +946,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "reports.scheduler": {
             "task": "reports.scheduler",
             "schedule": crontab(minute="*", hour="*"),
+            "options": {"expires": int(CELERY_BEAT_SCHEDULER_EXPIRES.total_seconds())},
         },
         "reports.prune_log": {
             "task": "reports.prune_log",
@@ -1097,7 +1102,7 @@ CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 # dictionary. Exposing functionality through JINJA_CONTEXT_ADDONS has security
 # implications as it opens a window for a user to execute untrusted code.
 # It's important to make sure that the objects exposed (as well as objects attached
-# to those objets) are harmless. We recommend only exposing simple/pure functions that
+# to those objects) are harmless. We recommend only exposing simple/pure functions that
 # return native types.
 JINJA_CONTEXT_ADDONS: dict[str, Callable[..., Any]] = {}
 
@@ -1109,7 +1114,7 @@ JINJA_CONTEXT_ADDONS: dict[str, Callable[..., Any]] = {}
 # basis. Example value = `{"presto": CustomPrestoTemplateProcessor}`
 CUSTOM_TEMPLATE_PROCESSORS: dict[str, type[BaseTemplateProcessor]] = {}
 
-# Roles that are controlled by the API / Superset and should not be changes
+# Roles that are controlled by the API / Superset and should not be changed
 # by humans.
 ROBOT_PERMISSION_ROLES = ["Public", "Gamma", "Alpha", "Admin", "sql_lab"]
 
@@ -1421,7 +1426,11 @@ TALISMAN_CONFIG = {
             "https://events.mapbox.com",
         ],
         "object-src": "'none'",
-        "style-src": ["'self'", "'unsafe-inline'"],
+        "style-src": [
+            "'self'",
+            "'unsafe-inline'",
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+        ],
         "script-src": ["'self'", "'strict-dynamic'"],
     },
     "content_security_policy_nonce_in": ["script-src"],
@@ -1439,7 +1448,11 @@ TALISMAN_DEV_CONFIG = {
             "https://events.mapbox.com",
         ],
         "object-src": "'none'",
-        "style-src": ["'self'", "'unsafe-inline'"],
+        "style-src": [
+            "'self'",
+            "'unsafe-inline'",
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+        ],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     },
     "content_security_policy_nonce_in": ["script-src"],
@@ -1498,6 +1511,9 @@ SQLA_TABLE_MUTATOR = lambda table: table
 
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
+GLOBAL_ASYNC_QUERY_MANAGER_CLASS = (
+    "superset.async_events.async_query_manager.AsyncQueryManager"
+)
 GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
     "port": 6379,
     "host": "127.0.0.1",
@@ -1508,6 +1524,7 @@ GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
+GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS = True
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: None | (

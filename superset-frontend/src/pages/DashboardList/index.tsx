@@ -86,7 +86,7 @@ interface DashboardListProps {
   };
 }
 
-interface Dashboard {
+export interface Dashboard {
   changed_by_name: string;
   changed_on_delta_humanized: string;
   changed_by: string;
@@ -755,10 +755,13 @@ function DashboardList(props: DashboardListProps) {
                 data={dashboards}
                 disableBulkSelect={toggleBulkSelect}
                 fetchData={fetchData}
+                refreshData={refreshData}
                 filters={filters}
                 initialSort={initialSort}
                 loading={loading}
                 pageSize={PAGE_SIZE}
+                addSuccessToast={addSuccessToast}
+                addDangerToast={addDangerToast}
                 showThumbnails={
                   userKey
                     ? userKey.thumbnails
@@ -770,6 +773,8 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
+                enableBulkTag
+                bulkTagResourceName="dashboard"
               />
             </>
           );

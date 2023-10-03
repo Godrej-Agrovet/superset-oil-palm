@@ -43,6 +43,7 @@ from superset import (
     is_feature_enabled,
     security_manager,
 )
+from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -73,9 +74,7 @@ from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.superset_typing import FlaskResponse
-from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils
-from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
     base_json_conv,
@@ -320,14 +319,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 # at which point they will call the /explore_json/data/<cache_key>
                 # endpoint to retrieve the results.
                 try:
-                    async_channel_id = async_query_manager.parse_jwt_from_request(
-                        request
-                    )["channel"]
-                    job_metadata = async_query_manager.init_job(
-                        async_channel_id, get_user_id()
+                    async_channel_id = (
+                        async_query_manager.parse_channel_id_from_request(request)
                     )
-                    load_explore_json_into_cache.delay(
-                        job_metadata, form_data, response_type, force
+                    job_metadata = async_query_manager.submit_explore_json_job(
+                        async_channel_id, form_data, response_type, force, get_user_id()
                     )
                 except AsyncQueryTokenException:
                     return json_error_response("Not authorized", 401)
