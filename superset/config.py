@@ -39,7 +39,7 @@ from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
 import pkg_resources
 from celery.schedules import crontab
 from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB
+from flask_appbuilder.security.manager import AUTH_DB, AUTH_OAUTH
 from flask_caching.backends.base import BaseCache
 from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
@@ -311,7 +311,8 @@ FAB_API_SWAGGER_UI = True
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-AUTH_TYPE = AUTH_DB
+AUTH_TYPE = AUTH_OAUTH
+
 
 # Uncomment to setup Full admin role name
 # AUTH_ROLE_ADMIN = 'Admin'
@@ -332,6 +333,26 @@ AUTH_TYPE = AUTH_DB
 # OPENID_PROVIDERS = [
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
+OAUTH_PROVIDERS = [
+{
+    "name": "azure",
+    "icon": "fa-windows",
+    "token_key": "access_token",
+    "remote_app": {
+        "client_id": os.environ.get("CLIENT_ID", ""),
+        "client_secret": os.environ.get("CLIENT_SECRET", ""),
+        "api_base_url": os.environ.get("API_BASE_URL", ""),
+        "client_kwargs": {
+            "scope": "User.read name preferred_username email profile upn",
+            "resource": "client_id",
+        },
+        "request_token_url": None,
+        "access_token_url": os.environ.get("ACCESS_TOKEN_URL", ""),
+        "authorize_url": os.environ.get("AUTHORIZE_URL", ""),
+    },
+
+},
+]
 
 # ---------------------------------------------------
 # Roles config
