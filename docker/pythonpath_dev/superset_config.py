@@ -99,7 +99,6 @@ WEBDRIVER_BASEURL = "http://superset:8088/"
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
 SQLLAB_CTAS_NO_LIMIT = True
-
 #
 # Optionally import superset_config_docker.py (which will have been included on
 # the PYTHONPATH) in order to allow for local settings to be overridden
@@ -113,3 +112,45 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+
+from flask_appbuilder.security.manager import AUTH_OAUTH
+
+AUTH_TYPE = AUTH_OAUTH
+CSRF_ENABLED = True
+ENABLE_PROXY_FIX = True
+
+OAUTH_PROVIDERS = [
+    {
+        "name": "azure",
+        "icon": "fa-windows",
+        "token_key": "access_token",
+        "remote_app": {
+            "client_id": "dd0ada11-1e35-4de9-be21-5cc555dfbb5b",
+            "client_secret": "Rxu8Q~XYfpSE-DE4FKZHUqw9E-ZBlYe1SPnq2aEy",
+            "client_kwargs": {
+                'scope': 'openid email profile',
+            },
+            "access_token_url": "https://login.microsoftonline.com/aeb2c5ed-8484-461f-9746-2bc8cf87c117/oauth2/token",
+            "authorize_url": "https://login.microsoftonline.com/aeb2c5ed-8484-461f-9746-2bc8cf87c117/oauth2/authorize",
+            "redirect_uri": "http://localhost:8088/oauth-authorized/azure",  # Match this to Azure AD
+            'jwks_uri': 'https://login.microsoftonline.com/common/discovery/v2.0/keys',
+        },
+    },
+]
+
+PERMANENT_SESSION_LIFETIME = 1800
+
+from superset.security import SupersetSecurityManager
+from flask import request
+
+class CustomSecurityManager(SupersetSecurityManager):
+    def oauth_user_info(self, provider, response=None):
+        provider_from_url = request.view_args.get('provider')
+        user_info = response.get("userinfo",{})
+        user_info["username"] = user_info.get("unique_name",None)
+        if provider == provider_from_url:
+            return user_info
+        return {}
+CUSTOM_SECURITY_MANAGER = CustomSecurityManager
+HTTPS_ENABLED = True
