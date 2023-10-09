@@ -126,13 +126,13 @@ OAUTH_PROVIDERS = [
         "icon": "fa-windows",
         "token_key": "access_token",
         "remote_app": {
-            "client_id": "dd0ada11-1e35-4de9-be21-5cc555dfbb5b",
-            "client_secret": "Rxu8Q~XYfpSE-DE4FKZHUqw9E-ZBlYe1SPnq2aEy",
+            "client_id": "",
+            "client_secret": "",
             "client_kwargs": {
                 'scope': 'openid email profile',
             },
-            "access_token_url": "https://login.microsoftonline.com/aeb2c5ed-8484-461f-9746-2bc8cf87c117/oauth2/token",
-            "authorize_url": "https://login.microsoftonline.com/aeb2c5ed-8484-461f-9746-2bc8cf87c117/oauth2/authorize",
+            "access_token_url": "https://login.microsoftonline.com/tenant_id/oauth2/token",
+            "authorize_url": "https://login.microsoftonline.com/tenant_id/oauth2/authorize",
             "redirect_uri": "http://localhost:8088/oauth-authorized/azure",  # Match this to Azure AD
             'jwks_uri': 'https://login.microsoftonline.com/common/discovery/v2.0/keys',
         },
